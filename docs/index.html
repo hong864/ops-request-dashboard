@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>운영 요청 DB 맵</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #ffffff; color: #1c1c1a; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; padding: 12px 14px 18px; }
+.hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.hd h1 { margin: 0; font-size: 15px; font-weight: 600; }
+.hd .sub { font-size: 12px; color: #5f5e5a; margin-top: 2px; }
+.mode { display: flex; gap: 6px; font-size: 12px; }
+.mode button { background: transparent; border: 1px solid #e5e4df; border-radius: 6px; padding: 5px 10px; cursor: pointer; color: #5f5e5a; font-family: inherit; font-size: 12px; }
+.mode button.active { background: #f1efe8; color: #1c1c1a; border-color: #c9c6bb; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; font-size: 11px; color: #5f5e5a; align-items: center; }
+.legend .sw { width: 12px; height: 12px; border-radius: 2px; display: inline-block; margin-right: 4px; vertical-align: -2px; }
+.legend .lbl { font-weight: 500; color: #1c1c1a; margin-right: 4px; }
+#tm { width: 100%; background: #f8f7f2; border-radius: 8px; display: block; }
+.tile { cursor: pointer; transition: opacity .12s; }
+.tile:hover { opacity: .82; }
+.tx { pointer-events: none; user-select: none; font-family: inherit; }
+.grp-lbl { pointer-events: none; font-weight: 500; font-size: 11px; fill: #5f5e5a; }
+.summary { margin-top: 10px; font-size: 12px; color: #5f5e5a; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.summary b { color: #1c1c1a; font-weight: 600; }
+.foot { margin-top: 8px; font-size: 11px; color: #888780; }
+.foot a { color: #185fa5; text-decoration: none; }
+.foot a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="hd">
+  <div>
+    <h1>운영 요청 DB — 한눈에 보기</h1>
+    <div class="sub">크기 = RICE 점수 · 색 = 선택한 기준 · 타일 클릭 시 노션 페이지 열림</div>
+  </div>
+  <div class="mode" id="mode">
+    <button data-mode="prio" class="active">우선순위</button>
+    <button data-mode="status">처리상태</button>
+    <button data-mode="p">P단계</button>
+  </div>
+</div>
+<div class="legend" id="legend"></div>
+<svg id="tm" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid meet" role="img" aria-label="운영 요청 DB 트리맵"></svg>
+<div class="summary" id="summary"></div>
+<div class="foot">
+  갱신 시각: 2026-04-23 16:21 KST (초기 스냅샷) · 총 96건 · 출처: 노션 운영 요청 DB
+</div>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
+<script>
+const DATA = [{"id": "84", "title": "오퍼 관리 ", "full_title": "오퍼 관리 ", "module": "기타", "modules": [], "rice": 0, "p": "-", "prio": "백로그", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Should", "owner": "", "requester": "", "due": "", "url": "https://www.notion.so/3452cb18c71b80bcba5cd7e1db16bfab"}, {"id": "81", "title": "전시 모듈 개편", "full_title": "전시 모듈 개편", "module": "기타", "modules": [], "rice": 0, "p": "P0", "prio": "즉시", "status": "진행 중", "cat": "개선 프로젝트", "moscow": "Should", "owner": "홍태원", "requester": "", "due": "2026-04-21", "url": "https://www.notion.so/3432cb18c71b8006b353ff203ff229bd"}, {"id": "80", "title": "사방넷 이미지 업로드 에디터 변경요청의 건", "full_title": "사방넷 이미지 업로드 에디터 변경요청의 건", "module": "기타", "modules": [], "rice": 0, "p": "P0", "prio": "-", "status": "진행 중", "cat": "운영업무", "moscow": "Must", "owner": "이연화", "requester": "", "due": "2026-04-17", "url": "https://www.notion.so/3432cb18c71b80bab623d74a62509242"}, {"id": "79", "title": "기간조회 화면에서 달력 포멧이 다른 이슈 ", "full_title": "기간조회 화면에서 달력 포멧이 다른 이슈 ", "module": "기타", "modules": [], "rice": 0, "p": "P0", "prio": "-", "status": "진행 중", "cat": "운영업무", "moscow": "Must", "owner": "이연화", "requester": "", "due": "2026-04-20", "url": "https://www.notion.so/3432cb18c71b807895f0dae259cde44c"}, {"id": "108", "title": "퍼블리싱", "full_title": "퍼블리싱", "module": "기타", "modules": [], "rice": 0, "p": "-", "prio": "-", "status": "진행 중", "cat": "-", "moscow": "-", "owner": "김리아", "requester": "", "due": "2026-04-22", "url": "https://www.notion.so/34b2cb18c71b80ada4c0f5a21107c51e"}, {"id": "107", "title": "기획", "full_title": "기획", "module": "기타", "modules": [], "rice": 0, "p": "-", "prio": "-", "status": "진행 중", "cat": "-", "moscow": "-", "owner": "이연화", "requester": "", "due": "2026-04-23", "url": "https://www.notion.so/34b2cb18c71b80f88829d5ab394dfc46"}, {"id": "103", "title": "사장님 보고", "full_title": "사장님 보고", "module": "기타", "modules": [], "rice": 0, "p": "-", "prio": "-", "status": "진행 중", "cat": "-", "moscow": "-", "owner": "", "requester": "", "due": "2026-04-24", "url": "https://www.notion.so/3492cb18c71b80e893d5f84c0f5dd81d"}, {"id": "102", "title": "[AX]업무 자동화 1단계 - 클로드 & 노", "full_title": "[AX]업무 자동화 1단계 - 클로드 & 노션", "module": "기타", "modules": [], "rice": 0, "p": "-", "prio": "-", "status": "진행 중", "cat": "-", "moscow": "-", "owner": "홍태원", "requester": "", "due": "2026-04-21", "url": "https://www.notion.so/3492cb18c71b800cbe76ff0104641bdd"}, {"id": "101", "title": "기획", "full_title": "기획", "module": "기타", "modules": [], "rice": 0, "p": "-", "prio": "-", "status": "진행 중", "cat": "-", "moscow": "-", "owner": "", "requester": "", "due": "2026-04-22", "url": "https://www.notion.so/3492cb18c71b80a69d08f11d7266b179"}, {"id": "100", "title": "기획", "full_title": "기획", "module": "기타", "modules": [], "rice": 0, "p": "-", "prio": "-", "status": "완료", "cat": "-", "moscow": "-", "owner": "이연화", "requester": "", "due": "2026-04-16", "url": "https://www.notion.so/3492cb18c71b80c39ad5dccbd3ec0da3"}, {"id": "99", "title": "QA", "full_title": "QA", "module": "기타", "modules": [], "rice": 0, "p": "-", "prio": "-", "status": "시작 전", "cat": "-", "moscow": "-", "owner": "이연화", "requester": "", "due": "2026-05-11", "url": "https://www.notion.so/3492cb18c71b80939845cf837b5310de"}, {"id": "98", "title": "기획", "full_title": "기획", "module": "기타", "modules": [], "rice": 0, "p": "-", "prio": "-", "status": "완료", "cat": "-", "moscow": "-", "owner": "이연화", "requester": "", "due": "2026-04-17", "url": "https://www.notion.so/3492cb18c71b8025b9f1daddd1cbb5f5"}, {"id": "97", "title": "QA", "full_title": "QA", "module": "기타", "modules": [], "rice": 0, "p": "-", "prio": "-", "status": "시작 전", "cat": "-", "moscow": "-", "owner": "", "requester": "", "due": "2026-04-27", "url": "https://www.notion.so/3492cb18c71b806595f5df6e7bda6ee5"}, {"id": "96", "title": "기획", "full_title": "기획", "module": "기타", "modules": [], "rice": 0, "p": "-", "prio": "-", "status": "완료", "cat": "-", "moscow": "-", "owner": "", "requester": "", "due": "2026-04-16", "url": "https://www.notion.so/3492cb18c71b809fbb01c654cd031ff1"}, {"id": "95", "title": "기획", "full_title": "기획", "module": "기타", "modules": [], "rice": 0, "p": "-", "prio": "-", "status": "진행 중", "cat": "-", "moscow": "-", "owner": "이연화", "requester": "", "due": "2026-04-20", "url": "https://www.notion.so/3492cb18c71b809ca13ce6f3d9084874"}, {"id": "94", "title": "기획", "full_title": "기획", "module": "기타", "modules": [], "rice": 0, "p": "-", "prio": "-", "status": "완료", "cat": "-", "moscow": "-", "owner": "", "requester": "", "due": "2026-04-20", "url": "https://www.notion.so/3492cb18c71b80fab50cc87b0c634c8e"}, {"id": "93", "title": "기획 필요여부 검토(예정)", "full_title": "기획 필요여부 검토(예정)", "module": "기타", "modules": [], "rice": 0, "p": "-", "prio": "-", "status": "시작 전", "cat": "-", "moscow": "-", "owner": "", "requester": "", "due": "2026-04-22", "url": "https://www.notion.so/3492cb18c71b806d8006c05532e34214"}, {"id": "92", "title": "기획", "full_title": "기획", "module": "기타", "modules": [], "rice": 0, "p": "-", "prio": "-", "status": "완료", "cat": "-", "moscow": "-", "owner": "", "requester": "", "due": "2026-04-20", "url": "https://www.notion.so/3492cb18c71b804e9ceaf80d75529ffa"}, {"id": "83", "title": "QA", "full_title": "QA", "module": "기타", "modules": [], "rice": 0, "p": "-", "prio": "-", "status": "시작 전", "cat": "-", "moscow": "-", "owner": "", "requester": "", "due": "2026-04-27", "url": "https://www.notion.so/3452cb18c71b802fa532dba28d0a4a8d"}, {"id": "82", "title": "기획", "full_title": "기획", "module": "기타", "modules": [], "rice": 0, "p": "-", "prio": "-", "status": "완료", "cat": "-", "moscow": "-", "owner": "", "requester": "", "due": "2026-04-16", "url": "https://www.notion.so/3452cb18c71b8038a76efb829bd746a7"}, {"id": "60", "title": "RT입고관리 화면 개선", "full_title": "RT입고관리 화면 개선", "module": "배송", "modules": ["배송"], "rice": 600, "p": "P2", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Should", "owner": "이연화", "requester": "원미란", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b802baf4bc0a530e58c25"}, {"id": "45", "title": "물류팀] 회수등록 메뉴 개선요청", "full_title": "물류팀] 회수등록 메뉴 개선요청", "module": "배송", "modules": ["배송", "클레임"], "rice": 600, "p": "P2", "prio": "즉시", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Should", "owner": "홍태원", "requester": "물류팀 김교담 차장", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b80b7954ec674d9e9ff1d"}, {"id": "24", "title": "'[미샤] 출고지정 우선순위 변경 요청'의 ", "full_title": "'[미샤] 출고지정 우선순위 변경 요청'의 후속 작업", "module": "배송", "modules": ["배송"], "rice": 600, "p": "P2", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Should", "owner": "이연화", "requester": "김경환", "due": "2026-06-01", "url": "https://www.notion.so/33e2cb18c71b802ca36ffd09cafdb648"}, {"id": "64", "title": "[어드민] 회수관리 불량률 조회 화면 추가", "full_title": "[어드민] 회수관리 불량률 조회 화면 추가", "module": "배송", "modules": ["배송", "클레임"], "rice": 150, "p": "P3", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Could", "owner": "이연화", "requester": "원미란", "due": "2026-07-01", "url": "https://www.notion.so/3412cb18c71b80e7a624de30efbfd94b"}, {"id": "36", "title": "AI생성형이미지 표기(ASAP)", "full_title": "AI생성형이미지 표기(ASAP)", "module": "상품", "modules": ["상품"], "rice": 42000, "p": "P0", "prio": "즉시", "status": "진행 중", "cat": "운영업무", "moscow": "Must", "owner": "이연화", "requester": "박지현", "due": "2026-04-15", "url": "https://www.notion.so/3402cb18c71b80638517e095a70cc8b7"}, {"id": "49", "title": "[미샤] 메인/리오더 품번 대표노출 컬러 확", "full_title": "[미샤] 메인/리오더 품번 대표노출 컬러 확인요청", "module": "상품", "modules": ["상품", "전시"], "rice": 14000, "p": "P0", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Must", "owner": "개발팀", "requester": "김희수", "due": "", "url": "https://www.notion.so/3412cb18c71b809a998dff1c87a10cda"}, {"id": "71", "title": "상품상세 노티스영역 하단 추가 노출처리", "full_title": "상품상세 노티스영역 하단 추가 노출처리", "module": "상품", "modules": ["상품", "전시"], "rice": 3500, "p": "P2", "prio": "다음 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Could", "owner": "개발팀", "requester": "임태준", "due": "2026-05-04", "url": "https://www.notion.so/3412cb18c71b80b3a605da60f55a8f1a"}, {"id": "69", "title": "상품 상세페이지 내 관련기획전 PC 노출 및", "full_title": "상품 상세페이지 내 관련기획전 PC 노출 및 디자인 변경 요청의 건", "module": "상품", "modules": ["상품", "전시"], "rice": 3500, "p": "P2", "prio": "이번 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Could", "owner": "홍태원", "requester": "박지은", "due": "2026-05-04", "url": "https://www.notion.so/3412cb18c71b80f3b341eb11f941ab10"}, {"id": "38", "title": "품번변경리오더랜딩영역개발요", "full_title": "품번변경리오더랜딩영역개발요", "module": "상품", "modules": ["상품"], "rice": 3500, "p": "P1", "prio": "이번 주", "status": "진행 중", "cat": "운영업무", "moscow": "Should", "owner": "이연화", "requester": "박지현", "due": "2026-04-15", "url": "https://www.notion.so/3402cb18c71b800cbd31e6f817a2ce38"}, {"id": "12", "title": "어드민 상품 노웈여부 미체크 상태에서 저장 ", "full_title": "어드민 상품 노웈여부 미체크 상태에서 저장 시 자동 전체 체크 오류 수정", "module": "상품", "modules": ["상품"], "rice": 1800, "p": "P0", "prio": "즉시", "status": "시작 전", "cat": "운영업무", "moscow": "Must", "owner": "개발팀", "requester": "박지은", "due": "2026-04-10", "url": "https://www.notion.so/33e2cb18c71b8196bb30e60b82d99962"}, {"id": "43", "title": "어드민 뱃지&쿠폰 추가 개발 요청의 건", "full_title": "어드민 뱃지&쿠폰 추가 개발 요청의 건", "module": "상품", "modules": ["상품", "프로모션"], "rice": 800, "p": "P1", "prio": "다음 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Should", "owner": "홍태원", "requester": "박지은", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b803a91e9f9126420abce"}, {"id": "7", "title": "사방넷 상품등록/수정관리 탭 공지사항 문구 ", "full_title": "사방넷 상품등록/수정관리 탭 공지사항 문구 수정 요청", "module": "상품", "modules": ["상품"], "rice": 600, "p": "P2", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Could", "owner": "개발팀", "requester": "김선화", "due": "2026-04-17", "url": "https://www.notion.so/33e2cb18c71b81bea990d0dbe96c26d4"}, {"id": "29", "title": "[어드민] 엑셀 업로드 상품 검증 로직 개선", "full_title": "[어드민] 엑셀 업로드 상품 검증 로직 개선", "module": "상품", "modules": ["상품", "전시"], "rice": 450, "p": "P0", "prio": "즉시", "status": "시작 전", "cat": "운영업무", "moscow": "Must", "owner": "개발팀", "requester": "김경환", "due": "", "url": "https://www.notion.so/33e2cb18c71b80119c31e52d52e24deb"}, {"id": "53", "title": "[EBM] 외부몰 사방넷 썸네일 업뎃 ", "full_title": "[EBM] 외부몰 사방넷 썸네일 업뎃 ", "module": "상품", "modules": ["상품"], "rice": 300, "p": "P3", "prio": "다음 주", "status": "진행 중", "cat": "운영업무", "moscow": "Could", "owner": "이연화", "requester": "이지원", "due": "2026-04-20", "url": "https://www.notion.so/3412cb18c71b8047b39efbef3ca11bc8"}, {"id": "65", "title": "서브 상품명 노출일정 지정 요청의 건", "full_title": "서브 상품명 노출일정 지정 요청의 건", "module": "상품", "modules": ["상품", "전시"], "rice": 240, "p": "P3", "prio": "다음 주", "status": "시작 전", "cat": "운영업무", "moscow": "Could", "owner": "홍태원", "requester": "박지은", "due": "2026-05-18", "url": "https://www.notion.so/3412cb18c71b8074aec7dd4805fc2075"}, {"id": "58", "title": "상세페이지 배송문구이미지 일괄등록 문의", "full_title": "상세페이지 배송문구이미지 일괄등록 문의", "module": "상품", "modules": ["상품", "전시"], "rice": 240, "p": "P3", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Could", "owner": "이연화", "requester": "김선화", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b8038ac10f80798e1caf0"}, {"id": "87", "title": "[상품]PDP UI/UX 개선", "full_title": "[상품]PDP UI/UX 개선", "module": "상품", "modules": ["상품"], "rice": 0, "p": "P1", "prio": "이번 주", "status": "진행 중", "cat": "개선 프로젝트", "moscow": "Should", "owner": "홍태원", "requester": "", "due": "2026-04-23", "url": "https://www.notion.so/3482cb18c71b809b8a42c10e21e6f7de"}, {"id": "54", "title": "APP설치유도", "full_title": "APP설치유도", "module": "전시", "modules": ["전시"], "rice": 11200, "p": "P1", "prio": "이번 주", "status": "진행 중", "cat": "운영업무", "moscow": "Should", "owner": "이연화", "requester": "박지현", "due": "2026-04-21", "url": "https://www.notion.so/3412cb18c71b805cb8abe6c43f12771b"}, {"id": "57", "title": "GTM 온마팀,개발팀 운영 안정화", "full_title": "GTM 온마팀,개발팀 운영 안정화", "module": "전시", "modules": ["전시"], "rice": 7000, "p": "P1", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Should", "owner": "개발팀", "requester": "임태준", "due": "", "url": "https://www.notion.so/3412cb18c71b80649cafdf9ab3c13164"}, {"id": "74", "title": "(공통) 자사몰 장바구니 담기 시 팝업 및 ", "full_title": "(공통) 자사몰 장바구니 담기 시 팝업 및 그루비 상품추천 노출 요청건", "module": "전시", "modules": ["전시", "주문"], "rice": 5600, "p": "P1", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Should", "owner": "이연화", "requester": "선철수", "due": "2026-05-06", "url": "https://www.notion.so/3412cb18c71b802d90c4c3fd050d959a"}, {"id": "59", "title": "카테고리 필터 추가", "full_title": "카테고리 필터 추가", "module": "전시", "modules": ["전시"], "rice": 4800, "p": "P1", "prio": "다음 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Should", "owner": "홍태원", "requester": "박지현", "due": "2026-04-27", "url": "https://www.notion.so/3412cb18c71b80ecb101cc3b9dd2ff71"}, {"id": "75", "title": "쿠폰함 및 쿠폰 영역 개선", "full_title": "쿠폰함 및 쿠폰 영역 개선", "module": "전시", "modules": ["전시", "프로모션"], "rice": 2400, "p": "P1", "prio": "이번 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Should", "owner": "홍태원", "requester": "박지현", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b8095b2c5f2a3882666f1"}, {"id": "67", "title": "모바일 상품 탐색 편의를 위한 상품리스트 필", "full_title": "모바일 상품 탐색 편의를 위한 상품리스트 필터 기능 개선", "module": "전시", "modules": ["전시"], "rice": 2400, "p": "P1", "prio": "이번 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Should", "owner": "홍태원", "requester": "유은정", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b80f8aee6d9618995d7b8"}, {"id": "37", "title": "자주 묻는 질문 컨텐츠 현행화", "full_title": "자주 묻는 질문 컨텐츠 현행화", "module": "전시", "modules": ["전시"], "rice": 1600, "p": "P1", "prio": "다음 주", "status": "시작 전", "cat": "운영업무", "moscow": "Should", "owner": "장자연", "requester": "임태준", "due": "2026-04-17", "url": "https://www.notion.so/3402cb18c71b809cb8ffda2946801166"}, {"id": "78", "title": "[App]필터 기능 UI/UX 편의성 개선", "full_title": "[App]필터 기능 UI/UX 편의성 개선", "module": "전시", "modules": ["전시"], "rice": 1500, "p": "P2", "prio": "다음 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Could", "owner": "홍태원", "requester": "박종삼", "due": "2026-06-30", "url": "https://www.notion.so/3412cb18c71b80ca893dee5c82e93308"}, {"id": "52", "title": "어드민 쿠폰 추가 개발 요청의 건", "full_title": "어드민 쿠폰 추가 개발 요청의 건", "module": "전시", "modules": ["전시", "프로모션"], "rice": 800, "p": "P2", "prio": "다음 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Should", "owner": "홍태원", "requester": "박지은", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b80c3a5bce4ca4340f206"}, {"id": "4", "title": "셀럽 스타일링 페이지 CELEB'S PICK", "full_title": "셀럽 스타일링 페이지 CELEB'S PICK 상단 배너 구좌 추가", "module": "전시", "modules": ["전시"], "rice": 800, "p": "P0", "prio": "다음 주", "status": "진행 중", "cat": "운영업무", "moscow": "Could", "owner": "이연화", "requester": "박지은", "due": "2026-04-16", "url": "https://www.notion.so/33e2cb18c71b81539bd2ddf60691b4e9"}, {"id": "62", "title": "일대일문의 답변 이미지 다운로드기능 추가", "full_title": "일대일문의 답변 이미지 다운로드기능 추가", "module": "전시", "modules": ["전시"], "rice": 480, "p": "P2", "prio": "다음 주", "status": "시작 전", "cat": "운영업무", "moscow": "Could", "owner": "이연화", "requester": "임태준", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b80c69de6cd218a727b05"}, {"id": "55", "title": "어드민 등록 화면에 브랜드 자동 설정 기능 ", "full_title": "어드민 등록 화면에 브랜드 자동 설정 기능 추가", "module": "전시", "modules": ["전시", "상품"], "rice": 480, "p": "P2", "prio": "다음 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Could", "owner": "홍태원", "requester": "임태준", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b808c8e3afa0f9aeacf72"}, {"id": "1", "title": "EBM 브랜드 LIVE 방송 카테고리 페이지", "full_title": "EBM 브랜드 LIVE 방송 카테고리 페이지 신규 개발", "module": "전시", "modules": ["전시"], "rice": 400, "p": "P3", "prio": "즉시", "status": "진행 중", "cat": "운영업무", "moscow": "Could", "owner": "이연화", "requester": "미기재", "due": "2026-04-15", "url": "https://www.notion.so/33c2cb18c71b81d98146e5b37036e3e9"}, {"id": "39", "title": "'이미지 에디터 영역 구분 '의 후속 작업", "full_title": "'이미지 에디터 영역 구분 '의 후속 작업", "module": "전시", "modules": ["전시"], "rice": 300, "p": "P2", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Should", "owner": "이연화", "requester": "김경환", "due": "2026-06-01", "url": "https://www.notion.so/3402cb18c71b80dab14fc22b5358a998"}, {"id": "23", "title": "[어드민]캘린더 함수 점검", "full_title": "[어드민]캘린더 함수 점검", "module": "전시", "modules": ["전시"], "rice": 300, "p": "P3", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Could", "owner": "개발팀", "requester": "김경환", "due": "2026-06-01", "url": "https://www.notion.so/33e2cb18c71b80899da4c18918509f46"}, {"id": "47", "title": "배너등록 한 판에 등록", "full_title": "배너등록 한 판에 등록", "module": "전시", "modules": ["전시"], "rice": 150, "p": "P3", "prio": "이번 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Could", "owner": "홍태원", "requester": "박지현", "due": "2026-05-02", "url": "https://www.notion.so/3412cb18c71b80688e5acc2f5caad609"}, {"id": "51", "title": "기획전+배너 관리 일원화 페이지 개발 요청의", "full_title": "기획전+배너 관리 일원화 페이지 개발 요청의 건", "module": "전시", "modules": ["전시"], "rice": 75, "p": "P3", "prio": "다음 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Could", "owner": "홍태원", "requester": "박지은", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b80b5b6a7c7dedb5156d0"}, {"id": "86", "title": "앱 시선메인 화면에서 상품그룹 부분 브랜드명", "full_title": "앱 시선메인 화면에서 상품그룹 부분 브랜드명 확인 요청", "module": "전시", "modules": ["전시"], "rice": 0, "p": "P3", "prio": "백로그", "status": "진행 중", "cat": "운영업무", "moscow": "Should", "owner": "이연화", "requester": "박지은", "due": "2026-04-17", "url": "https://www.notion.so/3452cb18c71b8146bf75c2f07c8573ca"}, {"id": "88", "title": "(퍼블리싱)", "full_title": "(퍼블리싱)", "module": "전시", "modules": ["전시"], "rice": 0, "p": "P1", "prio": "다음 주", "status": "완료", "cat": "운영업무", "moscow": "Should", "owner": "김리아", "requester": "박지은", "due": "2026-04-20", "url": "https://www.notion.so/3482cb18c71b800b90f6d6b391ac46a8"}, {"id": "104", "title": "잇미샤 기획전 디자인 퍼블 양식화 작업", "full_title": "잇미샤 기획전 디자인 퍼블 양식화 작업", "module": "전시", "modules": ["전시", "프로모션"], "rice": 0, "p": "-", "prio": "다음 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Should", "owner": "", "requester": "박지은", "due": "", "url": "https://www.notion.so/3492cb18c71b81cea4fde2ebbdf7ca42"}, {"id": "44", "title": "네이버페이 주문 프로세스 점검", "full_title": "네이버페이 주문 프로세스 점검", "module": "주문", "modules": ["주문"], "rice": 21000, "p": "P0", "prio": "이번 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Must", "owner": "이연화", "requester": "유은정", "due": "2026-05-04", "url": "https://www.notion.so/3412cb18c71b801ca2e1f25325dcaf7a"}, {"id": "21", "title": "주문페이지 NPAY 결제수단 추가. (기획 ", "full_title": "주문페이지 NPAY 결제수단 추가. (기획 필요 X)", "module": "주문", "modules": ["주문"], "rice": 10500, "p": "P0", "prio": "이번 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Must", "owner": "개발팀", "requester": "임태준", "due": "2026-04-22", "url": "https://www.notion.so/33e2cb18c71b80e1b616e1d6e498c9fd"}, {"id": "61", "title": "반품비 설정 변경 검토", "full_title": "반품비 설정 변경 검토", "module": "주문", "modules": ["주문", "클레임"], "rice": 7000, "p": "P1", "prio": "이번 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Should", "owner": "홍태원", "requester": "박지현", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b80a6be15cb8e54c18b72"}, {"id": "42", "title": "자사몰 트랜잭션 관리 개선", "full_title": "자사몰 트랜잭션 관리 개선", "module": "주문", "modules": ["주문"], "rice": 5250, "p": "P0", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Must", "owner": "개발팀", "requester": "김경환", "due": "", "url": "https://www.notion.so/3412cb18c71b80a58e6be0959c9d39e3"}, {"id": "9", "title": "EBM 주문 시 패밀리 세일 재고 혼입 확인", "full_title": "EBM 주문 시 패밀리 세일 재고 혼입 확인 및 재고 허들 적용 오류 수", "module": "주문", "modules": ["주문", "상품"], "rice": 3000, "p": "P0", "prio": "즉시", "status": "시작 전", "cat": "운영업무", "moscow": "Must", "owner": "개발팀", "requester": "이지원", "due": "2026-04-10", "url": "https://www.notion.so/33e2cb18c71b81f5b7acd4a047e2a437"}, {"id": "76", "title": "[IT]쿠폰 사용 시 금액 절사의 건", "full_title": "[IT]쿠폰 사용 시 금액 절사의 건", "module": "주문", "modules": ["주문", "프로모션"], "rice": 1600, "p": "P1", "prio": "다음 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Should", "owner": "홍태원", "requester": "박지은", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b80ec97d7c52dc76baa87"}, {"id": "26", "title": "2025년 결산 회계 요청자료", "full_title": "2025년 결산 회계 요청자료", "module": "주문", "modules": ["주문"], "rice": 1200, "p": "P1", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Should", "owner": "개발팀", "requester": "임태준", "due": "", "url": "https://www.notion.so/33e2cb18c71b802b93e5d1f8bac098fe"}, {"id": "63", "title": "외부몰 주문 수량 2개일 경우 복수송장으로 ", "full_title": "외부몰 주문 수량 2개일 경우 복수송장으로 출력 검토", "module": "주문", "modules": ["주문", "배송"], "rice": 900, "p": "P0", "prio": "즉시", "status": "시작 전", "cat": "운영업무", "moscow": "Must", "owner": "이연화", "requester": "원미란", "due": "2026-05-04", "url": "https://www.notion.so/3412cb18c71b80d1b70adf1cf87cfc86"}, {"id": "25", "title": "[어드민 성능 개선] RT 처리 내역 조회 ", "full_title": "[어드민 성능 개선] RT 처리 내역 조회 쿼리 개선", "module": "주문", "modules": ["주문"], "rice": 900, "p": "P0", "prio": "즉시", "status": "시작 전", "cat": "운영업무", "moscow": "Must", "owner": "김경환", "requester": "김경환", "due": "", "url": "https://www.notion.so/33e2cb18c71b8099b004e8409eb0b8a8"}, {"id": "68", "title": "외부몰 판매키 정산", "full_title": "외부몰 판매키 정산", "module": "주문", "modules": ["주문"], "rice": 600, "p": "P2", "prio": "다음 주", "status": "시작 전", "cat": "운영업무", "moscow": "Should", "owner": "개발팀", "requester": "김진옥", "due": "", "url": "https://www.notion.so/3412cb18c71b80f296b4d67085c85b26"}, {"id": "40", "title": "자사몰 ERP 매출반영 데이터 추가요청.", "full_title": "자사몰 ERP 매출반영 데이터 추가요청.", "module": "주문", "modules": ["주문"], "rice": 600, "p": "P2", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Should", "owner": "개발팀", "requester": "", "due": "", "url": "https://www.notion.so/3412cb18c71b80c0b83be774a30d8dd4"}, {"id": "13", "title": "어드민 주문취소 시 취소 사유 입력폼 누락 ", "full_title": "어드민 주문취소 시 취소 사유 입력폼 누락 추가 및 기본값 설정 요청", "module": "주문", "modules": ["주문"], "rice": 600, "p": "P1", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Should", "owner": "이연화", "requester": "임태준", "due": "2026-05-06", "url": "https://www.notion.so/33e2cb18c71b8103a7a0f40e9939b091"}, {"id": "34", "title": "피킹상품리스트 엑셀 다운로드 기능 개선", "full_title": "피킹상품리스트 엑셀 다운로드 기능 개선", "module": "주문", "modules": ["주문", "배송"], "rice": 600, "p": "P0", "prio": "이번 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Must", "owner": "홍태원", "requester": "물류팀 김교담 차장", "due": "2026-04-23", "url": "https://www.notion.so/3402cb18c71b81e2ab77dc18b1156ef8"}, {"id": "48", "title": " 해외배송 문구추가 2단계 - 요건부터 확인", "full_title": " 해외배송 문구추가 2단계 - 요건부터 확인 필요", "module": "주문", "modules": ["주문", "배송"], "rice": 450, "p": "P3", "prio": "백로그", "status": "시작 전", "cat": "운영업무", "moscow": "Must", "owner": "", "requester": "임태준", "due": "2026-04-22", "url": "https://www.notion.so/3412cb18c71b8052a8e0d919f4f868be"}, {"id": "41", "title": "어드민 주문상태(교환/반품) 변경 시스템화", "full_title": "어드민 주문상태(교환/반품) 변경 시스템화", "module": "주문", "modules": ["주문", "클레임"], "rice": 450, "p": "P2", "prio": "이번 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Should", "owner": "홍태원", "requester": "김경환", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b80e5853df6f2b5b60dc7"}, {"id": "35", "title": "스캔/복수주문 송장출력 품번별 스캔 이력 관", "full_title": "스캔/복수주문 송장출력 품번별 스캔 이력 관리 기능 추가", "module": "주문", "modules": ["주문", "배송"], "rice": 450, "p": "P2", "prio": "즉시", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Must", "owner": "홍태원", "requester": "물류팀 김교담 차장", "due": "2026-06-01", "url": "https://www.notion.so/3402cb18c71b8126a1f2d6f9b1a83330"}, {"id": "14", "title": "자사몰 어드민 내 백화점몰 매출 통계 조회 ", "full_title": "자사몰 어드민 내 백화점몰 매출 통계 조회 기능 추가", "module": "주문", "modules": ["주문"], "rice": 75, "p": "P3", "prio": "백로그", "status": "시작 전", "cat": "운영업무", "moscow": "Could", "owner": "이연화", "requester": "임태준", "due": "2026-07-01", "url": "https://www.notion.so/33e2cb18c71b81ec9e64fe31f61fe7b4"}, {"id": "30", "title": "고객 교환 철회 시점 로직 점검", "full_title": "고객 교환 철회 시점 로직 점검", "module": "클레임", "modules": ["클레임"], "rice": 3000, "p": "P0", "prio": "즉시", "status": "시작 전", "cat": "운영업무", "moscow": "Must", "owner": "개발팀", "requester": "김경환", "due": "", "url": "https://www.notion.so/33e2cb18c71b8029bc3df7ca57643a16"}, {"id": "10", "title": "외부몰 회수컨펀 마일리지 계산 로직 타입 파", "full_title": "외부몰 회수컨펀 마일리지 계산 로직 타입 파싱 오류 수정 요청", "module": "클레임", "modules": ["클레임", "주문"], "rice": 1800, "p": "P0", "prio": "즉시", "status": "시작 전", "cat": "운영업무", "moscow": "Must", "owner": "김경환", "requester": "김경환", "due": "2026-04-10", "url": "https://www.notion.so/33e2cb18c71b81cb93c1fd0f55a2d1fd"}, {"id": "11", "title": "어드민 회수컨펀 단건 주문 시 선택행 자동 ", "full_title": "어드민 회수컨펀 단건 주문 시 선택행 자동 세팅 처리 개선 요청", "module": "클레임", "modules": ["클레임"], "rice": 600, "p": "P2", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Could", "owner": "김경환", "requester": "김경환", "due": "2026-04-17", "url": "https://www.notion.so/33e2cb18c71b811f9019f2b7b2cdb15b"}, {"id": "73", "title": "(공통) 온라인 AS 접수 기능 개발 件", "full_title": "(공통) 온라인 AS 접수 기능 개발 件", "module": "클레임", "modules": ["클레임"], "rice": 500, "p": "P2", "prio": "다음 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Could", "owner": "홍태원", "requester": "선철수", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b801491b2d6d498215235"}, {"id": "16", "title": "회수건 매핑 불가 오류 수정 및 복사품번/외", "full_title": "회수건 매핑 불가 오류 수정 및 복사품번/외부몰 반품 보완 로직 개선 요", "module": "클레임", "modules": ["클레임", "배송"], "rice": 450, "p": "P0", "prio": "즉시", "status": "시작 전", "cat": "운영업무", "moscow": "Must", "owner": "홍태원", "requester": "장자연", "due": "2026-06-01", "url": "https://www.notion.so/33e2cb18c71b818f9e6df1aa0d57ddd3"}, {"id": "85", "title": "오프매장 구매 후 리뷰 작성 관련 개선 요청", "full_title": "오프매장 구매 후 리뷰 작성 관련 개선 요청", "module": "클레임", "modules": ["클레임", "프로모션"], "rice": 0, "p": "-", "prio": "백로그", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Should", "owner": "", "requester": "박지은", "due": "", "url": "https://www.notion.so/3452cb18c71b81df8fafc05450e6bf39"}, {"id": "6", "title": "[접급] 쿠폰 소멸 안내 알림톡 템플릿 브랜", "full_title": "[접급] 쿠폰 소멸 안내 알림톡 템플릿 브랜드명 오표기 수정 요청", "module": "프로모션", "modules": ["프로모션"], "rice": 6000, "p": "P0", "prio": "즉시", "status": "시작 전", "cat": "운영업무", "moscow": "Must", "owner": "원미란", "requester": "강지현", "due": "2026-04-10", "url": "https://www.notion.so/33e2cb18c71b8131b722f1f5ea71304b"}, {"id": "106", "title": "미샤(MICHAA) 첫구매 고객 사은품 자동", "full_title": "미샤(MICHAA) 첫구매 고객 사은품 자동 표기 기능 개발", "module": "프로모션", "modules": ["프로모션", "주문", "상품"], "rice": 3600, "p": "P1", "prio": "이번 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Must", "owner": "서비스기획팀", "requester": "이지원", "due": "2026-04-22", "url": "https://www.notion.so/34b2cb18c71b81db821bc76858ce5c31"}, {"id": "77", "title": "어드민 내 쿠폰 세팅 시, 해당 사이트 기준", "full_title": "어드민 내 쿠폰 세팅 시, 해당 사이트 기준 적용의 건", "module": "프로모션", "modules": ["프로모션"], "rice": 480, "p": "P2", "prio": "이번 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Should", "owner": "홍태원", "requester": "박지은", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b8058bee5db10db118176"}, {"id": "50", "title": "어드민 중복쿠폰 기능 개선 요청의 건", "full_title": "어드민 중복쿠폰 기능 개선 요청의 건", "module": "프로모션", "modules": ["프로모션"], "rice": 480, "p": "P2", "prio": "다음 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Should", "owner": "홍태원", "requester": "박지은", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b80179683c4ad319ee41e"}, {"id": "56", "title": "사은품 - 외부몰 지급 채널 구분 추가", "full_title": "사은품 - 외부몰 지급 채널 구분 추가", "module": "프로모션", "modules": ["프로모션"], "rice": 240, "p": "P3", "prio": "다음 주", "status": "시작 전", "cat": "운영업무", "moscow": "Could", "owner": "이연화", "requester": "김경환", "due": "2026-07-01", "url": "https://www.notion.so/3412cb18c71b80a6917de626872bc497"}, {"id": "46", "title": "T_CUST Exclusive Lock", "full_title": "T_CUST Exclusive Lock", "module": "회원", "modules": ["회원"], "rice": 21000, "p": "P0", "prio": "즉시", "status": "시작 전", "cat": "운영업무", "moscow": "Must", "owner": "개발팀", "requester": "임태준", "due": "", "url": "https://www.notion.so/3412cb18c71b803c8fd5fcc54c31eee9"}, {"id": "27", "title": "20251204라방 슬로우쿼리", "full_title": "20251204라방 슬로우쿼리", "module": "회원", "modules": ["회원"], "rice": 21000, "p": "P0", "prio": "즉시", "status": "시작 전", "cat": "운영업무", "moscow": "Must", "owner": "개발팀", "requester": "임태준", "due": "", "url": "https://www.notion.so/33e2cb18c71b80d48b2bc84979fb06eb"}, {"id": "15", "title": "통합 고객 정보 연동 배치 쾼리 길이 초과 ", "full_title": "통합 고객 정보 연동 배치 쾼리 길이 초과 오류 수정 (건수 분할 처리)", "module": "회원", "modules": ["회원"], "rice": 21000, "p": "P0", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Must", "owner": "개발팀", "requester": "김경환", "due": "2026-04-17", "url": "https://www.notion.so/33e2cb18c71b816fb58acb7a3b81ea0f"}, {"id": "70", "title": "최종구매일로 부터 00일 후 구매 유도 LM", "full_title": "최종구매일로 부터 00일 후 구매 유도 LMS 자동 발송 가능 여부 확인", "module": "회원", "modules": ["회원", "프로모션"], "rice": 1500, "p": "P2", "prio": "다음 주", "status": "시작 전", "cat": "개선 프로젝트", "moscow": "Could", "owner": "홍태원", "requester": "강지현", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b80b0a3f5dd8272d510b1"}, {"id": "5", "title": "장바구니/위시리스트 담은 회원 리스트 추출 ", "full_title": "장바구니/위시리스트 담은 회원 리스트 추출 (4/7 푸시 타겟용)", "module": "회원", "modules": ["회원", "주문"], "rice": 1200, "p": "P1", "prio": "즉시", "status": "시작 전", "cat": "운영업무", "moscow": "Should", "owner": "개발팀", "requester": "강지현", "due": "2026-04-07", "url": "https://www.notion.so/33e2cb18c71b811b8a41f5cc2082beb1"}, {"id": "3", "title": "회원발행 쿠폰 대용량 업로드 처리 한도 확장", "full_title": "회원발행 쿠폰 대용량 업로드 처리 한도 확장 및 엑셀 양식 다운로드 기능", "module": "회원", "modules": ["회원", "프로모션"], "rice": 900, "p": "P0", "prio": "이번 주", "status": "진행 중", "cat": "운영업무", "moscow": "Must", "owner": "이연화", "requester": "미기재 (확인 필요)", "due": "2026-04-20", "url": "https://www.notion.so/33e2cb18c71b81c4b5b7d54b86eaa41e"}, {"id": "31", "title": "회원상세 구매내역탭 기능 추가요청", "full_title": "회원상세 구매내역탭 기능 추가요청", "module": "회원", "modules": ["회원"], "rice": 600, "p": "P2", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Could", "owner": "이연화", "requester": "임태준", "due": "2026-06-01", "url": "https://www.notion.so/33e2cb18c71b801b94f5fda0cfc5158a"}, {"id": "8", "title": "CRM 어드민 타겟회원추출 구매/반품/취소 ", "full_title": "CRM 어드민 타겟회원추출 구매/반품/취소 횟수 기준 변경 및 항목명 수", "module": "회원", "modules": ["회원", "주문"], "rice": 600, "p": "P1", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Should", "owner": "개발팀", "requester": "강지현", "due": "2026-04-17", "url": "https://www.notion.so/33e2cb18c71b81b68acdd18285d2d4d6"}, {"id": "28", "title": "어드민 개인정보 추출 공통 점검", "full_title": "어드민 개인정보 추출 공통 점검", "module": "회원", "modules": ["회원"], "rice": 450, "p": "P0", "prio": "이번 주", "status": "시작 전", "cat": "운영업무", "moscow": "Must", "owner": "개발팀", "requester": "김경환", "due": "", "url": "https://www.notion.so/33e2cb18c71b8037a344d6409786116d"}, {"id": "66", "title": "자사몰 어드민 회원관리 주소 확인 추가 요청", "full_title": "자사몰 어드민 회원관리 주소 확인 추가 요청", "module": "회원", "modules": ["회원"], "rice": 300, "p": "P3", "prio": "다음 주", "status": "시작 전", "cat": "운영업무", "moscow": "Could", "owner": "이연화", "requester": "강지현", "due": "2026-06-01", "url": "https://www.notion.so/3412cb18c71b80ccb8f5f1901beb2c86"}, {"id": "72", "title": "[통계] Admin 대시보드 개선 - 2차", "full_title": "[통계] Admin 대시보드 개선 - 2차", "module": "회원", "modules": ["회원", "전시"], "rice": 120, "p": "P3", "prio": "다음 주", "status": "시작 전", "cat": "운영업무", "moscow": "Could", "owner": "이연화", "requester": "선철수", "due": "2026-07-01", "url": "https://www.notion.so/3412cb18c71b805382e1eefdecaa9eca"}];
+
+const COLORS = {
+  prio:   { "즉시": "#A32D2D", "이번 주": "#E24B4A", "다음 주": "#EF9F27", "백로그": "#85B7EB", "-": "#B4B2A9" },
+  status: { "시작 전": "#B4B2A9", "진행 중": "#378ADD", "완료": "#639922", "-": "#D3D1C7" },
+  p:      { "P0": "#A32D2D", "P1": "#E24B4A", "P2": "#EF9F27", "P3": "#85B7EB", "-": "#B4B2A9" }
+};
+const ORDER = {
+  prio:   ["즉시", "이번 주", "다음 주", "백로그", "-"],
+  status: ["시작 전", "진행 중", "완료", "-"],
+  p:      ["P0", "P1", "P2", "P3", "-"]
+};
+const NAME = { prio: "우선순위", status: "처리상태", p: "P단계" };
+
+function textColor(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return lum > 0.65 ? "#2c2c2a" : "#ffffff";
+}
+
+function buildHierarchy() {
+  const byMod = {};
+  for (const d of DATA) {
+    const k = d.module || "기타";
+    (byMod[k] = byMod[k] || []).push({ ...d, _v: Math.max(d.rice || 0, 80) });
+  }
+  const children = Object.entries(byMod)
+    .map(([name, items]) => ({ name, children: items }))
+    .sort((a, b) => d3.sum(b.children, x => x._v) - d3.sum(a.children, x => x._v));
+  return { name: "root", children };
+}
+
+const W = 1000, H = 620;
+const svg = d3.select("#tm");
+const root = d3.hierarchy(buildHierarchy()).sum(d => d._v || 0).sort((a, b) => b.value - a.value);
+d3.treemap().size([W, H]).paddingOuter(3).paddingTop(20).paddingInner(1).round(true)(root);
+
+let currentMode = "prio";
+
+function render() {
+  svg.selectAll("*").remove();
+  const groups = svg.selectAll("g.grp").data(root.children).join("g").attr("class", "grp");
+  groups.append("rect")
+    .attr("x", d => d.x0).attr("y", d => d.y0)
+    .attr("width", d => d.x1 - d.x0).attr("height", d => d.y1 - d.y0)
+    .attr("fill", "transparent")
+    .attr("stroke", "#d3d1c7")
+    .attr("stroke-width", 1);
+  groups.append("text")
+    .attr("class", "grp-lbl tx")
+    .attr("x", d => d.x0 + 7)
+    .attr("y", d => d.y0 + 14)
+    .text(d => `${d.data.name} · ${d.children.length}건`);
+
+  const leaves = svg.selectAll("g.leaf").data(root.leaves()).join("g").attr("class", "leaf");
+  leaves.append("rect")
+    .attr("class", "tile")
+    .attr("x", d => d.x0).attr("y", d => d.y0)
+    .attr("width", d => Math.max(0, d.x1 - d.x0))
+    .attr("height", d => Math.max(0, d.y1 - d.y0))
+    .attr("fill", d => {
+      const key = currentMode === "prio" ? (d.data.prio || "-")
+               : currentMode === "status" ? (d.data.status || "-")
+               : (d.data.p || "-");
+      return COLORS[currentMode][key] || COLORS[currentMode]["-"];
+    })
+    .attr("stroke", "rgba(255,255,255,0.4)")
+    .attr("stroke-width", 0.5)
+    .on("click", (ev, d) => { if (d.data.url) window.open(d.data.url, "_blank"); })
+    .append("title")
+    .text(d => {
+      const parts = [
+        d.data.full_title || d.data.title,
+        `모듈: ${d.data.module} · ${d.data.p} · ${d.data.prio}`,
+        `RICE: ${d.data.rice || 0} · ${d.data.status}`,
+        `담당: ${d.data.owner || "미지정"}${d.data.requester ? ` / 요청: ${d.data.requester}` : ""}`,
+        d.data.due ? `목표: ${d.data.due}` : null,
+      ].filter(Boolean);
+      return parts.join("\n");
+    });
+
+  leaves.each(function (d) {
+    const w = d.x1 - d.x0;
+    const h = d.y1 - d.y0;
+    if (w < 42 || h < 22) return;
+    const fill = d3.select(this).select("rect").attr("fill");
+    const fg = textColor(fill);
+    const t = d3.select(this).append("text")
+      .attr("class", "tx")
+      .attr("x", d.x0 + 5).attr("y", d.y0 + 14)
+      .attr("font-size", w > 110 && h > 55 ? 12 : 11)
+      .attr("fill", fg)
+      .text(d.data.title);
+    const node = t.node();
+    if (node && node.getComputedTextLength() > w - 10) {
+      let s = d.data.title;
+      while (s.length > 3 && node.getComputedTextLength() > w - 10) {
+        s = s.slice(0, -1);
+        t.text(s + "…");
+      }
+    }
+    if (h > 36) {
+      d3.select(this).append("text")
+        .attr("class", "tx")
+        .attr("x", d.x0 + 5).attr("y", d.y0 + 28)
+        .attr("font-size", 10)
+        .attr("fill", fg)
+        .attr("opacity", 0.85)
+        .text(`${d.data.p || "-"} · RICE ${d.data.rice || 0}`);
+    }
+  });
+
+  const leg = d3.select("#legend");
+  leg.html("");
+  leg.append("span").attr("class", "lbl").text(`색: ${NAME[currentMode]}`);
+  for (const k of ORDER[currentMode]) {
+    const el = leg.append("span");
+    el.append("span").attr("class", "sw").style("background", COLORS[currentMode][k]);
+    el.append("span").text(k);
+  }
+}
+
+function renderSummary() {
+  const by = (field) => {
+    const m = {};
+    for (const d of DATA) { const v = d[field] || "-"; m[v] = (m[v] || 0) + 1; }
+    return m;
+  };
+  const prio = by("prio"), status = by("status"), p = by("p");
+  const html = [
+    `<b>총 ${DATA.length}건</b>`,
+    `즉시 ${prio["즉시"] || 0} · 이번 주 ${prio["이번 주"] || 0} · 다음 주 ${prio["다음 주"] || 0} · 백로그 ${prio["백로그"] || 0}`,
+    `진행 중 ${status["진행 중"] || 0} · 완료 ${status["완료"] || 0} · 시작 전 ${status["시작 전"] || 0}`,
+    `P0 ${p["P0"] || 0} · P1 ${p["P1"] || 0} · P2 ${p["P2"] || 0} · P3 ${p["P3"] || 0}`,
+  ].join(" &nbsp;·&nbsp; ");
+  document.getElementById("summary").innerHTML = html;
+}
+
+render();
+renderSummary();
+
+document.querySelectorAll("#mode button").forEach((b) => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#mode button").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    currentMode = b.dataset.mode;
+    render();
+  });
+});
+</script>
+</body>
+</html>

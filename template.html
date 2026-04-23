@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>운영 요청 DB 맵</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #ffffff; color: #1c1c1a; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; padding: 12px 14px 18px; }
+.hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.hd h1 { margin: 0; font-size: 15px; font-weight: 600; }
+.hd .sub { font-size: 12px; color: #5f5e5a; margin-top: 2px; }
+.mode { display: flex; gap: 6px; font-size: 12px; }
+.mode button { background: transparent; border: 1px solid #e5e4df; border-radius: 6px; padding: 5px 10px; cursor: pointer; color: #5f5e5a; font-family: inherit; font-size: 12px; }
+.mode button.active { background: #f1efe8; color: #1c1c1a; border-color: #c9c6bb; }
+.legend { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; font-size: 11px; color: #5f5e5a; align-items: center; }
+.legend .sw { width: 12px; height: 12px; border-radius: 2px; display: inline-block; margin-right: 4px; vertical-align: -2px; }
+.legend .lbl { font-weight: 500; color: #1c1c1a; margin-right: 4px; }
+#tm { width: 100%; background: #f8f7f2; border-radius: 8px; display: block; }
+.tile { cursor: pointer; transition: opacity .12s; }
+.tile:hover { opacity: .82; }
+.tx { pointer-events: none; user-select: none; font-family: inherit; }
+.grp-lbl { pointer-events: none; font-weight: 500; font-size: 11px; fill: #5f5e5a; }
+.summary { margin-top: 10px; font-size: 12px; color: #5f5e5a; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+.summary b { color: #1c1c1a; font-weight: 600; }
+.foot { margin-top: 8px; font-size: 11px; color: #888780; }
+.foot a { color: #185fa5; text-decoration: none; }
+.foot a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="hd">
+  <div>
+    <h1>운영 요청 DB — 한눈에 보기</h1>
+    <div class="sub">크기 = RICE 점수 · 색 = 선택한 기준 · 타일 클릭 시 노션 페이지 열림</div>
+  </div>
+  <div class="mode" id="mode">
+    <button data-mode="prio" class="active">우선순위</button>
+    <button data-mode="status">처리상태</button>
+    <button data-mode="p">P단계</button>
+  </div>
+</div>
+<div class="legend" id="legend"></div>
+<svg id="tm" viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid meet" role="img" aria-label="운영 요청 DB 트리맵"></svg>
+<div class="summary" id="summary"></div>
+<div class="foot">
+  갱신 시각: __BUILT_AT__ · 총 __COUNT__건 · 출처: 노션 운영 요청 DB
+</div>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.8.5/dist/d3.min.js"></script>
+<script>
+const DATA = __DATA_JSON__;
+
+const COLORS = {
+  prio:   { "즉시": "#A32D2D", "이번 주": "#E24B4A", "다음 주": "#EF9F27", "백로그": "#85B7EB", "-": "#B4B2A9" },
+  status: { "시작 전": "#B4B2A9", "진행 중": "#378ADD", "완료": "#639922", "-": "#D3D1C7" },
+  p:      { "P0": "#A32D2D", "P1": "#E24B4A", "P2": "#EF9F27", "P3": "#85B7EB", "-": "#B4B2A9" }
+};
+const ORDER = {
+  prio:   ["즉시", "이번 주", "다음 주", "백로그", "-"],
+  status: ["시작 전", "진행 중", "완료", "-"],
+  p:      ["P0", "P1", "P2", "P3", "-"]
+};
+const NAME = { prio: "우선순위", status: "처리상태", p: "P단계" };
+
+function textColor(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return lum > 0.65 ? "#2c2c2a" : "#ffffff";
+}
+
+function buildHierarchy() {
+  const byMod = {};
+  for (const d of DATA) {
+    const k = d.module || "기타";
+    (byMod[k] = byMod[k] || []).push({ ...d, _v: Math.max(d.rice || 0, 80) });
+  }
+  const children = Object.entries(byMod)
+    .map(([name, items]) => ({ name, children: items }))
+    .sort((a, b) => d3.sum(b.children, x => x._v) - d3.sum(a.children, x => x._v));
+  return { name: "root", children };
+}
+
+const W = 1000, H = 620;
+const svg = d3.select("#tm");
+const root = d3.hierarchy(buildHierarchy()).sum(d => d._v || 0).sort((a, b) => b.value - a.value);
+d3.treemap().size([W, H]).paddingOuter(3).paddingTop(20).paddingInner(1).round(true)(root);
+
+let currentMode = "prio";
+
+function render() {
+  svg.selectAll("*").remove();
+  const groups = svg.selectAll("g.grp").data(root.children).join("g").attr("class", "grp");
+  groups.append("rect")
+    .attr("x", d => d.x0).attr("y", d => d.y0)
+    .attr("width", d => d.x1 - d.x0).attr("height", d => d.y1 - d.y0)
+    .attr("fill", "transparent")
+    .attr("stroke", "#d3d1c7")
+    .attr("stroke-width", 1);
+  groups.append("text")
+    .attr("class", "grp-lbl tx")
+    .attr("x", d => d.x0 + 7)
+    .attr("y", d => d.y0 + 14)
+    .text(d => `${d.data.name} · ${d.children.length}건`);
+
+  const leaves = svg.selectAll("g.leaf").data(root.leaves()).join("g").attr("class", "leaf");
+  leaves.append("rect")
+    .attr("class", "tile")
+    .attr("x", d => d.x0).attr("y", d => d.y0)
+    .attr("width", d => Math.max(0, d.x1 - d.x0))
+    .attr("height", d => Math.max(0, d.y1 - d.y0))
+    .attr("fill", d => {
+      const key = currentMode === "prio" ? (d.data.prio || "-")
+               : currentMode === "status" ? (d.data.status || "-")
+               : (d.data.p || "-");
+      return COLORS[currentMode][key] || COLORS[currentMode]["-"];
+    })
+    .attr("stroke", "rgba(255,255,255,0.4)")
+    .attr("stroke-width", 0.5)
+    .on("click", (ev, d) => { if (d.data.url) window.open(d.data.url, "_blank"); })
+    .append("title")
+    .text(d => {
+      const parts = [
+        d.data.full_title || d.data.title,
+        `모듈: ${d.data.module} · ${d.data.p} · ${d.data.prio}`,
+        `RICE: ${d.data.rice || 0} · ${d.data.status}`,
+        `담당: ${d.data.owner || "미지정"}${d.data.requester ? ` / 요청: ${d.data.requester}` : ""}`,
+        d.data.due ? `목표: ${d.data.due}` : null,
+      ].filter(Boolean);
+      return parts.join("\n");
+    });
+
+  leaves.each(function (d) {
+    const w = d.x1 - d.x0;
+    const h = d.y1 - d.y0;
+    if (w < 42 || h < 22) return;
+    const fill = d3.select(this).select("rect").attr("fill");
+    const fg = textColor(fill);
+    const t = d3.select(this).append("text")
+      .attr("class", "tx")
+      .attr("x", d.x0 + 5).attr("y", d.y0 + 14)
+      .attr("font-size", w > 110 && h > 55 ? 12 : 11)
+      .attr("fill", fg)
+      .text(d.data.title);
+    const node = t.node();
+    if (node && node.getComputedTextLength() > w - 10) {
+      let s = d.data.title;
+      while (s.length > 3 && node.getComputedTextLength() > w - 10) {
+        s = s.slice(0, -1);
+        t.text(s + "…");
+      }
+    }
+    if (h > 36) {
+      d3.select(this).append("text")
+        .attr("class", "tx")
+        .attr("x", d.x0 + 5).attr("y", d.y0 + 28)
+        .attr("font-size", 10)
+        .attr("fill", fg)
+        .attr("opacity", 0.85)
+        .text(`${d.data.p || "-"} · RICE ${d.data.rice || 0}`);
+    }
+  });
+
+  const leg = d3.select("#legend");
+  leg.html("");
+  leg.append("span").attr("class", "lbl").text(`색: ${NAME[currentMode]}`);
+  for (const k of ORDER[currentMode]) {
+    const el = leg.append("span");
+    el.append("span").attr("class", "sw").style("background", COLORS[currentMode][k]);
+    el.append("span").text(k);
+  }
+}
+
+function renderSummary() {
+  const by = (field) => {
+    const m = {};
+    for (const d of DATA) { const v = d[field] || "-"; m[v] = (m[v] || 0) + 1; }
+    return m;
+  };
+  const prio = by("prio"), status = by("status"), p = by("p");
+  const html = [
+    `<b>총 ${DATA.length}건</b>`,
+    `즉시 ${prio["즉시"] || 0} · 이번 주 ${prio["이번 주"] || 0} · 다음 주 ${prio["다음 주"] || 0} · 백로그 ${prio["백로그"] || 0}`,
+    `진행 중 ${status["진행 중"] || 0} · 완료 ${status["완료"] || 0} · 시작 전 ${status["시작 전"] || 0}`,
+    `P0 ${p["P0"] || 0} · P1 ${p["P1"] || 0} · P2 ${p["P2"] || 0} · P3 ${p["P3"] || 0}`,
+  ].join(" &nbsp;·&nbsp; ");
+  document.getElementById("summary").innerHTML = html;
+}
+
+render();
+renderSummary();
+
+document.querySelectorAll("#mode button").forEach((b) => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("#mode button").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    currentMode = b.dataset.mode;
+    render();
+  });
+});
+</script>
+</body>
+</html>
